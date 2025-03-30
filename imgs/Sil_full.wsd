@@ -1,0 +1,65 @@
+@startuml "sil_full"
+!include <C4/C4_Component>
+!include <C4/C4_Container>
+
+!define SPRITESURL https://raw.githubusercontent.com/plantuml-stdlib/gilbarbara-plantuml-sprites/v1.0/sprites
+!includeurl SPRITESURL/docker.puml
+!includeurl SPRITESURL/python.puml
+!includeurl SPRITESURL/c-plusplus.puml
+!includeurl SPRITESURL/go.puml
+
+skinparam ArrowColor black
+skinparam DefaultTextColor black
+
+Person(tester, "SIL-Tester")
+
+System_Boundary(ci, "Continuous Integration VM") {
+
+        Container(backend_p, "", $sprite="docker") {
+            Component(test_runner, "TestRunner", "CoCoTB/Pytest/Python", $sprite="python")
+        }
+        Container_Ext(broker, "Broker", "Mosquitto", $sprite="docker")
+        ContainerDb_Ext(db, "DB", "Certificates")
+
+    System_Boundary(dut, "DUT") {
+        Container(c, "Vagrant VM") {
+            Component(app, "Userspace Firmware (DUT)", "C++", $sprite="c-plusplus")
+
+            System(backend, "Backend", "", $sprite="go")
+        }
+
+    }
+
+    ContainerDb_Ext(sql, "sql") {
+
+    }
+    ContainerDb_Ext(nosql, "nosql") {
+
+    }
+    ContainerDb_Ext(s3, "s3") {
+
+    }
+
+    BiRel(backend, nosql, "<<CRUD>>")
+    BiRel(backend, sql, "<<CRUD>>")
+    BiRel(backend, s3, "<<CRUD>>")
+
+    BiRel(test_runner, nosql, "assert")
+    BiRel(test_runner, sql, "assert")
+    BiRel(test_runner, s3, "assert")
+    BiRel_R(test_runner, backend, "assert", "HTTP")
+
+    BiRel(app, backend, "non-event data", "HTTPS")
+    BiRel(app, broker, "real-time event data", "MQTT")
+    BiRel(broker, backend, "fake event data", "MQTT")
+    BiRel(broker, test_runner, "real-time event data", "MQTT")
+    BiRel(test_runner, app, "fake FPGA data", "DMA")
+    BiRel(test_runner, db, "PKI/Certs/Secrets", "HTTPS")
+    BiRel_R(tester, test_runner, "observes/starts/evaluates results")
+
+    Rel(tester, app, "config for testing")
+}
+
+SHOW_LEGEND()
+
+@enduml

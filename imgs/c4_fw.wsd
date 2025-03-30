@@ -1,0 +1,65 @@
+@startuml "c4_fw"
+
+!include <C4/C4_Component>
+!include <C4/C4_Container>
+
+!define SPRITESURL https://raw.githubusercontent.com/plantuml-stdlib/gilbarbara-plantuml-sprites/v1.0/sprites
+
+!includeurl SPRITESURL/go.puml
+!includeurl SPRITESURL/c-plusplus.puml
+!includeurl SPRITESURL/mysql.puml
+!includeurl SPRITESURL/mongodb.puml
+!includeurl SPRITESURL/aws-s3.puml
+
+skinparam ArrowColor black
+skinparam DefaultTextColor black
+
+Person(user, "User")
+
+System_Boundary(device, "Device") {
+    System_Boundary(firmware, "Firmware") {
+        System_Boundary(kernel, "KernelSpace", "Package") {
+            Component(kernel_dma, "KernelDMADriver", "Component", $sprite="c-plusplus")
+        }
+
+        System_Boundary(user_space, "UserSpace", "Package") {
+            System_Boundary(us_firmware, "Firmware", "Node") {
+                Component(user_dma_proxy, "UserSpaceDMADriverProxy", "Subsystem", $sprite="c-plusplus")
+                Component(fw_main_service, "FirmwareMainService", "Subsystem", $sprite="c-plusplus")
+            }
+        }
+    }
+}
+
+
+System_Boundary(cloud, "Cloud") {
+    System_Ext(internet_gateway, "InternetGateway", "AWS")
+
+    System_Boundary(vpc, "VPC") {
+        ContainerDb_Ext(nosql, "NoSQL", "Database", $sprite="mongodb")
+        ContainerDb_Ext(sql, "SQL", "Database", $sprite="mysql")
+        ContainerDb_Ext(s3, "S3", "Storage", $sprite="aws-s3")
+        System(backend, "Backend", "", $sprite="go")
+        System_Ext(load_balancer, "LoadBalancer", "AWS")
+
+        System(pki, "PKI")
+    }
+}
+
+BiRel(internet_gateway, load_balancer, "forwarding")
+BiRel(load_balancer, backend, "forwarding")
+BiRel(backend, nosql, "<<CRUD>>")
+BiRel(backend, sql, "<<CRUD>>")
+BiRel(backend, s3, "<<CRUD>>")
+
+BiRel_D(fw_main_service, user_dma_proxy, "<<uses>>")
+BiRel_U(kernel_dma, user_dma_proxy, "<<uses>>")
+
+BiRel(user, backend, "interacts with")
+
+BiRel(pki, internet_gateway, "authentication")
+BiRel(pki, backend, "authentication")
+
+BiRel_R(fw_main_service, internet_gateway, "event data", "MQTT")
+
+@enduml

@@ -1,0 +1,68 @@
+@startuml "component"
+
+skinparam ArrowColor black
+skinparam DefaultTextColor black
+
+node "Firmware"{
+    package "KernelSpace" {
+        node KSFirmware_Linux {
+            [KernelDMADriver]
+            () FPGAData
+        }
+    }
+
+    package "UserSpace" {
+        node USFirmware {
+            [UserSpaceDMADriverProxy] <<subsystem>>
+            [BackendGateway] <<subsystem>>
+            () IFPGAData
+        }
+    }
+}
+
+() MQTT
+() HTTPS
+
+node "Cloud" {
+    [InternetGateway] <<system>>
+
+    () FWD
+    [InternetGateway] -d-( FWD
+    [InternetGateway] -r- MQTT
+    [InternetGateway] -r- HTTPS
+
+    package "VPC" {
+
+        database NoSQL {
+
+        }
+        database SQL {
+
+        }
+        database "S3" {
+
+        }
+        [Backend] <<system>>
+
+        [LoadBalancer] <<system>>
+        Upload_API -d-[Backend]
+        [LoadBalancer] -u- FWD : ""
+        [LoadBalancer] -d-( Upload_API : "distribute acc. to load"
+        [Backend] -d-( INoSQL : "<<crud>>"
+        [Backend] -d-( ISQL : "<<crud>>"
+        [Backend] -d-( IS3 : "<<crud>>"
+        INoSQL -d- NoSQL
+        ISQL -d- SQL
+        IS3 -d- S3
+        [InternetGateway] -d-( IS3
+    }
+}
+
+[BackendGateway] -r-( MQTT
+[BackendGateway] -r-( HTTPS
+[BackendGateway] -d-( IFPGAData
+[UserSpaceDMADriverProxy] -u-( IFPGAData
+[UserSpaceDMADriverProxy] -d-( FPGAData
+[KernelDMADriver] -u- FPGAData
+
+@enduml

@@ -1,0 +1,45 @@
+@startuml "sil_backend_fw"
+!include <C4/C4_Component>
+!include <C4/C4_Container>
+
+!define SPRITESURL https://raw.githubusercontent.com/plantuml-stdlib/gilbarbara-plantuml-sprites/v1.0/sprites
+!includeurl SPRITESURL/docker.puml
+!includeurl SPRITESURL/python.puml
+!includeurl SPRITESURL/go.puml
+!includeurl SPRITESURL/c-plusplus.puml
+
+skinparam ArrowColor black
+skinparam DefaultTextColor black
+
+Person(tester, "SIL-Tester")
+
+System_Boundary(ci, "Continuous Integration Server") {
+
+    System_Boundary(cloud, "Test System") {
+        Container(backend_p, "", $sprite="docker") {
+            Component(test_runner, "TestRunner", "CoCoTB/Pytest/Python", $sprite="python")
+        }
+        ContainerDb_Ext(db, "DB", "Certificates")
+
+        Container_Ext(broker, "Broker", "Mosquitto", $sprite="docker")
+    }
+
+    System_Boundary(dut, "DUT") {
+        Container(backend_c, "", $sprite="docker") {
+            System(backend, "Backend", "", $sprite="go")
+        }
+    }
+
+    BiRel_R(tester, test_runner, "observes/starts/evaluates results")
+    BiRel_D(test_runner, db, "PKI/Certs/Secrets", "HTTPS")
+
+    BiRel(broker, test_runner, "fake event data", "MQTT")
+    BiRel(broker, backend, "fake event data", "MQTT")
+
+    BiRel_R(test_runner, backend, "fake event data/test assertion", "MQTT")
+    BiRel_R(test_runner, backend, "test assertion", "HTTP")
+}
+
+SHOW_LEGEND()
+
+@enduml

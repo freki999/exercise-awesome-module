@@ -1,0 +1,35 @@
+services:
+  run_ci_tests:
+    image: awesomemodule_cirunner:latest
+    build:
+        dockerfile: Dockerfile
+
+    volumes:
+      - ./tb:/home/tb
+      - ./vhdl:/home/vhdl
+      - ./tests:/home/tests
+      - ./fw_proto:/home/fw_proto
+    networks:
+      - ci_network
+    command: ["/bin/bash", "-c", "pip install -r /home/fw_proto/requirements.txt && pytest -s -rA -v /home/tests"]
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mqtt_broker
+    restart: always
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config:/home/mosquitto/config
+      - ./mosquitto/data:/home/mosquitto/data
+      - ./mosquitto/log:/home/mosquitto/log
+    environment:
+      - LOG_DEST=stdout
+
+    networks:
+      - ci_network
+    command: mosquitto -c /home/mosquitto/config -v
+
+networks:
+  ci_network:
+    driver: bridge

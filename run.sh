@@ -1,4 +1,2 @@
-#!/usr/bin/bash
-
-. venv/bin/activate
-pytest -s -v
+# bash
+docker compose up --build

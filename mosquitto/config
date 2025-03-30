@@ -1,0 +1,6 @@
+# persistence true
+# persistence_location /home/mosquitto/data/
+# log_dest stdout
+
+listener 1883
+allow_anonymous true  # Change this for authentication
